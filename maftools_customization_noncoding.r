@@ -1,6 +1,8 @@
+this.dir <- dirname(parent.frame(2)$ofile) #sets current folder as working directory 
+setwd(this.dir)
 library(maftools)
 
-snv_dat <- read.delim("sample.maf", header=T) 
+snv_dat <- read.delim("mc3_BRCA_mc3.txt", header=T) #unzip files before loading as input
 
 #read the mutation file in to build a maf file that maftools oncoplot can recgnize as input 
 #rearrange the columns so that maftools can recognize the input
@@ -15,7 +17,7 @@ snv_dat <- snv_dat[,cols]
 
 write.table(snv_dat, "sample_mod.maf", sep = "\t", quote=F, row.names=F)
 
-clinical <- read.delim("clinical_classification.tsv", sep = "\t")
+clinical <- read.delim("TCGA.BRCA.sampleMap_BRCA_clinicalMatrix", sep = "\t")
 clinical <- clinical[c('sampleID', 'X_cohort')]
 colnames(clinical) <- c('Tumor_Sample_Barcode', "Disease")
 head(clinical)
