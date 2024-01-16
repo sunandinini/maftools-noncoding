@@ -1,0 +1,63 @@
+---
+title: "maftools_customization_noncoding"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/home/sunandini/Downloads/maftools-noncoding-main") #change this accordingly 
+```
+
+Uncomment the code and install maftools if required
+```{r}
+#if (!require("BiocManager"))
+#  install.packages("BiocManager")
+#BiocManager::install("maftools")
+library(maftools)
+```
+
+Load the SNV file 
+```{r}
+snv_dat <- read.delim("BRCA_mc3.txt", header=T) #unzip files before loading as input
+```
+
+Modify the SNV file to be read by maftools 
+
+```{r}
+colnames(snv_dat) <- c("Tumor_Sample_Barcode", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Tumor_Seq_Allele1","Hugo_Symbol","Variant_Classification", "Amino_Acid_Change","DNA_VAF","SIFT", "PolyPhen") # this has to be adapted to the dataset
+snv_dat$NCBI_Build <- "GRCh37"
+snv_dat$Tumor_Seq_Allele2 <- snv_dat$Tumor_Seq_Allele1
+snv_dat$Variant_Type <- "SNP"
+head(snv_dat)
+cols <- c("Hugo_Symbol", "NCBI_Build", "Variant_Classification", "Tumor_Sample_Barcode", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Variant_Type")
+snv_dat <- snv_dat[,cols]
+write.table(snv_dat, "sample_mod.maf", sep = "\t", quote=F, row.names=F)
+```
+
+Read the clinical data into a dataframe
+```{r}
+clinical <- read.delim("TCGA.BRCA.sampleMap_BRCA_clinicalMatrix", sep = "\t")
+clinical <- clinical[c('sampleID', 'X_cohort')]
+colnames(clinical) <- c('Tumor_Sample_Barcode', "Cohort") #Useful if dataset contains patients from multiple cancer types 
+head(clinical)
+```
+
+# Note:
+It is important that even if there are no non-synonymous mutations (for ex working with non-coding mutations), the mutations must be labelled as non-synonymous for maftools to be able to plot them
+In this case I'm labelling variants classified as 'RNA' as non-synonymous, but you can choose whichever variant you're interested in to be classified as non-synonymous if it is already not classified as non-synonymous. 
+If there is no variant classification column, add it in and label the mutations manually as non-synonymous. 
+
+```{r}
+maf_dat <- read.maf(maf = "sample_mod.maf", vc_nonSyn = c("RNA"), clinicalData = clinical)
+```
+
+```{r}
+vc_cols = RColorBrewer::brewer.pal(n=5, name='Dark2')
+names(vc_cols) = c('RNA')
+```
+
+```{r}
+oncoplot(maf=maf_dat, top = 10, colors = vc_cols, draw_titv = TRUE, gene_mar = 5, fontSize = 0.6, sepwd_genes=-1, sepwd_samples=-0.1, removeNonMutated = TRUE,  clinicalFeatures=c('Cohort'), bgCol = "white", borderCol = "black")
+```
+
